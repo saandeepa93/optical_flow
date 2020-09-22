@@ -1,0 +1,15 @@
+.DS_Store
+.virtenv
+.venv
+.vscode
+
+__pycache__
+
+input
+models
+output
+
+
+!.gitkeep
+
+.env
