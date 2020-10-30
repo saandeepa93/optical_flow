@@ -12,7 +12,7 @@ setup_logger()
 from torchvision import io, transforms
 from sys import exit as e
 
-from modules.util import imshow, show
+from modules.util import imshow, show, show_animation, read_frames
 from modules.face_detector import pred_landmarks
 
 # You will be implementing sparse optical flow in this file
@@ -34,8 +34,8 @@ def get_masks(im):
 
 def calc_flow(configs):
   # input_file = "./input/01.mp4"
-  input_file = configs["paths"]["input"]
-  cap = io.read_video(input_file, pts_unit = 'sec')[0].numpy()
+  output_imgs = []
+  cap = read_frames(configs)
   lk_params = dict(winSize = (15,15), maxLevel = 2, criteria = (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 0.03))
   # feature_params = dict(maxCorners = 300, qualityLevel = 0.2, minDistance = 2, blockSize = 7)
   color = (0, 255, 0)
@@ -45,6 +45,8 @@ def calc_flow(configs):
   # prev = cv2.goodFeaturesToTrack(prev_gray, mask = None, **feature_params)
   prev = pred_landmarks(first_frame)[:, np.newaxis, :].astype(np.float32)
   mask = np.zeros_like(first_frame)
+  im = []
+  im.append(first_frame)
 
   for frame in cap[1:]:
     # frame_2_orig = np.copy(frame_2)
@@ -59,9 +61,10 @@ def calc_flow(configs):
       mask = cv2.line(mask, (a, b), (c, d), color, 2)
       frame = cv2.circle(frame, (a, b), 3, color, -1)
     output = cv2.add(frame, mask)
+    im.append(output)
     prev_gray = gray.copy()
     prev = good_new.reshape(-1, 1, 2)
-    imshow(output)
-    if cv2.waitKey(10) & 0xFF == ord('q'):
-      break
+
+  if int(configs["params"]["animate"]):
+    show_animation(im, cap, configs)
 

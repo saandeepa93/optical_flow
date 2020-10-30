@@ -1,2 +1,12 @@
 paths:
-  input: ./input/01.mp4
+  input: ./input/smiling_2.mov
+  input2: ./input/amuse.png
+  output: ./output/SN003_dense.mp4
+
+params:
+  animate: 1
+  type: video
+  img_size: 512
+  vid_interval: 5
+  img_interval: 300
+  save_flg: 1

@@ -9,10 +9,10 @@ from detectron2.config import get_cfg
 from detectron2.utils.visualizer import Visualizer
 from detectron2.data import MetadataCatalog, DatasetCatalog
 setup_logger()
-from torchvision import io, transforms
+
 from sys import exit as e
 
-from modules.util import imshow, show
+from modules.util import imshow, show, show_animation, read_frames, flow_warping
 from modules.face_detector import pred_landmarks
 
 # You will be implementing sparse optical flow in this file
@@ -34,8 +34,9 @@ def get_masks(im):
 
 def calc_flow(configs):
   # input_file = "./input/01.mp4"
-  input_file = configs["paths"]["input"]
-  cap = io.read_video(input_file, pts_unit = 'sec')[0].numpy()
+  output_imgs = []
+  deformed = []
+  cap = read_frames(configs)
   lk_params = dict(winSize = (15,15), maxLevel = 2, criteria = (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 0.03))
   # feature_params = dict(maxCorners = 300, qualityLevel = 0.2, minDistance = 2, blockSize = 7)
   color = (0, 255, 0)
@@ -46,17 +47,22 @@ def calc_flow(configs):
   prev = pred_landmarks(first_frame)[:, np.newaxis, :].astype(np.float32)
   mask = np.zeros_like(first_frame)
   mask[..., 1] = 255
+  output_imgs.append(first_frame)
+  deformed.append(first_frame)
 
   for frame in cap[1:]:
     # frame_2_orig = np.copy(frame_2)
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     # keypoints = np.argwhere(segments==1)
     flow = cv2.calcOpticalFlowFarneback(prev_gray, gray, None, 0.5, 3, 15, 3, 5, 1.2, 0)
+    deformed_src = flow_warping(flow, first_frame)
+    deformed.append(deformed_src)
     magnitude, angle = cv2.cartToPolar(flow[..., 0], flow[..., 1])
     mask[..., 0] = angle * 180 / np.pi / 2
     mask[..., 2] = cv2.normalize(magnitude, None, 0, 255, cv2.NORM_MINMAX)
     rgb = cv2.cvtColor(mask, cv2.COLOR_HSV2BGR)
-    imshow(rgb)
-    if cv2.waitKey(10) & 0xFF == ord('q'):
-      break
+    output_imgs.append(rgb)
+  if int(configs["params"]["animate"]):
+    show_animation(output_imgs, cap, deformed, configs)
+
 
